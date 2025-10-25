@@ -27,8 +27,6 @@
         @media (max-width: 640px) {
             .container {
                 padding: 8px;
-                align-items: flex-start;
-                padding-top: 20px;
             }
         }
         .card {
@@ -230,12 +228,14 @@
             }
         }
         .option-button:hover:not(:disabled) {
-            background: #d1fae5;
+            background: #f3f4f6;
             transform: scale(1.05);
         }
-        .option-button:disabled {
+        .option-button:disabled:not(.option-correct):not(.option-incorrect) {
             cursor: not-allowed;
             transform: none;
+            background: white;
+            border-color: #d1d5db;
         }
         .option-correct {
             background: #d1fae5 !important;
@@ -262,6 +262,15 @@
         .feedback-correct {
             background: #d1fae5;
             border-color: #10b981;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .feedback-correct:hover {
+            background: #a7f3d0;
+            transform: scale(1.02);
+        }
+        .feedback-correct:active {
+            transform: scale(0.98);
         }
         .feedback-correct-text {
             font-size: 1.25rem;
@@ -297,6 +306,34 @@
                 font-size: 0.85rem;
             }
         }
+        .countdown-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+        @media (max-width: 640px) {
+            .countdown-bar-container {
+                height: 6px;
+                margin-top: 12px;
+            }
+        }
+        .countdown-bar {
+            height: 100%;
+            background: linear-gradient(to right, #059669, #047857);
+            width: 0%;
+            animation: countdown 3s linear forwards;
+        }
+        @keyframes countdown {
+            from {
+                width: 0%;
+            }
+            to {
+                width: 100%;
+            }
+        }
         .score-card {
             background: linear-gradient(to right, #059669, #047857);
             color: white;
@@ -305,17 +342,38 @@
             margin-bottom: 16px;
             text-align: center;
         }
+        @media (max-width: 640px) {
+            .score-card {
+                padding: 16px;
+                margin-bottom: 12px;
+            }
+        }
         .score-label {
             font-size: 1.25rem;
             margin-bottom: 4px;
+        }
+        @media (max-width: 640px) {
+            .score-label {
+                font-size: 1rem;
+            }
         }
         .score-number {
             font-size: 3.75rem;
             font-weight: bold;
             margin-bottom: 4px;
         }
+        @media (max-width: 640px) {
+            .score-number {
+                font-size: 2.5rem;
+            }
+        }
         .score-percentage {
             font-size: 1.125rem;
+        }
+        @media (max-width: 640px) {
+            .score-percentage {
+                font-size: 1rem;
+            }
         }
         .score-message {
             font-size: 1.25rem;
@@ -324,6 +382,12 @@
             font-weight: 600;
             text-align: center;
         }
+        @media (max-width: 640px) {
+            .score-message {
+                font-size: 1rem;
+                margin-bottom: 12px;
+            }
+        }
         .overview-container {
             background: #f9fafb;
             border-radius: 12px;
@@ -331,6 +395,13 @@
             margin-bottom: 24px;
             max-height: 288px;
             overflow-y: auto;
+        }
+        @media (max-width: 640px) {
+            .overview-container {
+                max-height: 200px;
+                padding: 12px;
+                margin-bottom: 16px;
+            }
         }
         .overview-title {
             font-size: 1.25rem;
@@ -375,13 +446,37 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin: 0 auto;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
             transition: all 0.3s;
         }
         .restart-button:hover {
             transform: scale(1.05);
             background: linear-gradient(to right, #047857, #065f46);
+        }
+        .button-container {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .share-button {
+            background: linear-gradient(to right, #25D366, #128C7E);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-size: 1.125rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+        .share-button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(to right, #128C7E, #075E54);
         }
     </style>
 </head>
@@ -456,7 +551,7 @@
                 {
                     question: "Het proces waarbij dieren zich voortplanten door nakomelingen te maken?",
                     options: ["Reproductie", "Voortplanting", "Vermenigvuldiging", "Ontwikkeling"],
-                    correct: 1,
+                    correct: [0, 1],
                     emoji: "👨‍👩‍👧‍👦🐣"
                 },
                 {
@@ -492,7 +587,7 @@
                 {
                     question: "Dieren die zowel planten als vlees eten?",
                     options: ["Vleeseters", "Planteneters", "Alleseters", "Omnivoren"],
-                    correct: 2,
+                    correct: [2, 3],
                     emoji: "🐻🍖🌿"
                 },
                 {
@@ -593,7 +688,12 @@
                 if (selectedAnswer !== null) return;
                 
                 setSelectedAnswer(index);
-                const isCorrect = index === questions[currentQuestion].correct;
+                
+                // Check of antwoord correct is (ondersteunt zowel enkel nummer als array)
+                const correctAnswers = Array.isArray(questions[currentQuestion].correct) 
+                    ? questions[currentQuestion].correct 
+                    : [questions[currentQuestion].correct];
+                const isCorrect = correctAnswers.includes(index);
                 
                 playSound(isCorrect);
                 
@@ -601,7 +701,7 @@
                     question: questions[currentQuestion].question,
                     correct: isCorrect,
                     userAnswer: questions[currentQuestion].options[index],
-                    correctAnswer: questions[currentQuestion].options[questions[currentQuestion].correct]
+                    correctAnswer: questions[currentQuestion].options[correctAnswers[0]]
                 }]);
                 
                 if (isCorrect) {
@@ -609,14 +709,18 @@
                 }
                 
                 setTimeout(() => {
-                    if (currentQuestion < questions.length - 1) {
-                        setCurrentQuestion(currentQuestion + 1);
-                        setSelectedAnswer(null);
-                    } else {
-                        playCompletionFanfare();
-                        setQuizFinished(true);
-                    }
+                    goToNextQuestion();
                 }, 3000);
+            };
+
+            const goToNextQuestion = () => {
+                if (currentQuestion < questions.length - 1) {
+                    setCurrentQuestion(currentQuestion + 1);
+                    setSelectedAnswer(null);
+                } else {
+                    playCompletionFanfare();
+                    setQuizFinished(true);
+                }
             };
 
             const restartQuiz = () => {
@@ -703,7 +807,7 @@
                                 ))}
                             </div>
                             
-                            <button onClick={restartQuiz} className="restart-button">
+                            <button onClick={restartQuiz} className="restart-button" style={{margin: '0 auto'}}>
                                 <span>🔄</span>
                                 Opnieuw spelen
                             </button>
@@ -735,12 +839,16 @@
                             <h2 className="question-text">{questions[currentQuestion].question}</h2>
                         </div>
                         
-                        <div className="options-grid">
+                        <div className="options-grid" key={currentQuestion}>
                             {questions[currentQuestion].options.map((option, index) => {
                                 let className = "option-button";
                                 
                                 if (selectedAnswer !== null) {
-                                    if (index === questions[currentQuestion].correct) {
+                                    const correctAnswers = Array.isArray(questions[currentQuestion].correct) 
+                                        ? questions[currentQuestion].correct 
+                                        : [questions[currentQuestion].correct];
+                                    
+                                    if (correctAnswers.includes(index)) {
                                         className += " option-correct";
                                     } else if (index === selectedAnswer) {
                                         className += " option-incorrect";
@@ -749,13 +857,20 @@
                                 
                                 return (
                                     <button
-                                        key={index}
+                                        key={`q${currentQuestion}-opt${index}`}
                                         onClick={() => handleAnswerClick(index)}
                                         disabled={selectedAnswer !== null}
                                         className={className}
                                     >
-                                        {selectedAnswer !== null && index === questions[currentQuestion].correct && "✅ "}
-                                        {selectedAnswer !== null && index === selectedAnswer && index !== questions[currentQuestion].correct && "❌ "}
+                                        {selectedAnswer !== null && (() => {
+                                            const correctAnswers = Array.isArray(questions[currentQuestion].correct) 
+                                                ? questions[currentQuestion].correct 
+                                                : [questions[currentQuestion].correct];
+                                            
+                                            if (correctAnswers.includes(index)) return "✅ ";
+                                            if (index === selectedAnswer && !correctAnswers.includes(index)) return "❌ ";
+                                            return "";
+                                        })()}
                                         {option}
                                     </button>
                                 );
@@ -764,18 +879,29 @@
                         
                         {selectedAnswer !== null && (
                             <div>
-                                {selectedAnswer === questions[currentQuestion].correct ? (
-                                    <div className="feedback feedback-correct">
-                                        <p className="feedback-correct-text">🎉 Goed gedaan! 🎉</p>
-                                    </div>
-                                ) : (
-                                    <div className="feedback feedback-incorrect">
-                                        <p className="feedback-incorrect-title">Helaas!</p>
-                                        <p className="feedback-incorrect-text">
-                                            Goed antwoord: <strong>{questions[currentQuestion].options[questions[currentQuestion].correct]}</strong>
-                                        </p>
-                                    </div>
-                                )}
+                                {(() => {
+                                    const correctAnswers = Array.isArray(questions[currentQuestion].correct) 
+                                        ? questions[currentQuestion].correct 
+                                        : [questions[currentQuestion].correct];
+                                    const isCorrect = correctAnswers.includes(selectedAnswer);
+                                    
+                                    return isCorrect ? (
+                                        <div className="feedback feedback-correct" onClick={goToNextQuestion}>
+                                            <p className="feedback-correct-text">🎉 Goed gedaan! 🎉</p>
+                                        </div>
+                                    ) : (
+                                        <div className="feedback feedback-incorrect">
+                                            <p className="feedback-incorrect-title">Helaas!</p>
+                                            <p className="feedback-incorrect-text">
+                                                Goed antwoord: <strong>{questions[currentQuestion].options[correctAnswers[0]]}</strong>
+                                            </p>
+                                        </div>
+                                    );
+                                })()}
+                                
+                                <div className="countdown-bar-container">
+                                    <div className="countdown-bar" key={currentQuestion}></div>
+                                </div>
                             </div>
                         )}
                     </div>
